@@ -1,0 +1,68 @@
+[
+  {
+    "name": "get_order",
+    "description": "Look up one of the signed-in customer's orders by its numeric order id. Returns the order status, items, total, amount already refunded, carrier and estimated delivery, plus the reason for any delay. Use for questions about an order's status, shipping or delays.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "description": "Numeric order id, for example \"123\"."
+        },
+        "requester_id": {
+          "type": "string",
+          "description": "Set by the platform to the signed-in customer; leave it out."
+        }
+      },
+      "required": ["order_id"]
+    }
+  },
+  {
+    "name": "get_customer",
+    "description": "Look up the signed-in customer's profile by customer id. Returns name, email, loyalty tier and the customer's order ids. Use for questions about the customer's account or contact details.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "customer_id": {
+          "type": "string",
+          "description": "Customer id, for example \"CUST-001\"."
+        },
+        "requester_id": {
+          "type": "string",
+          "description": "Set by the platform to the signed-in customer; leave it out."
+        }
+      },
+      "required": ["customer_id"]
+    }
+  },
+  {
+    "name": "refund_customer",
+    "description": "Refund part or all of one of the signed-in customer's orders to the original payment method. Idempotent: repeating a call with the same idempotency_key for the same order returns the original refund, with replayed=true, instead of creating a new one.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "description": "Numeric id of the order to refund."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Refund amount in USD with at most 2 decimal places, for example 25.50."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short reason for the refund."
+        },
+        "idempotency_key": {
+          "type": "string",
+          "description": "Unique key for this refund operation, for example \"operation-123\". Reuse the same key when retrying the same refund."
+        },
+        "requester_id": {
+          "type": "string",
+          "description": "Set by the platform to the signed-in customer; leave it out."
+        }
+      },
+      "required": ["order_id", "amount", "reason", "idempotency_key"]
+    }
+  }
+]
