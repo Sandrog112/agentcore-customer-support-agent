@@ -1,0 +1,39 @@
+[project]
+name = "agentcore-customer-support-agent"
+version = "0.1.0"
+description = "Customer support agent on Amazon Bedrock AgentCore (Runtime, Gateway, Memory, Policy) built with Strands"
+requires-python = ">=3.13"
+# Runtime dependencies are packaged into the AgentCore Runtime deployment by deploy.py.
+dependencies = [
+    "anthropic[bedrock]>=1.15.0",
+    "aws-opentelemetry-distro>=0.21.0",
+    "bedrock-agentcore>=1.24.1",
+    "boto3>=1.43.114",
+    "httpx>=0.28.1",
+    "strands-agents>=1.61.1",
+]
+
+[dependency-groups]
+dev = [
+    "cedarpy>=4.12.2",
+    "moto[dynamodb]>=5.2.4",
+    "pre-commit>=4.7.0",
+    "pytest>=9.1.1",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["live: runs against the deployed AWS stack (invokes the model, costs money)"]
+addopts = "-m 'not live'"
+filterwarnings = [
+    "ignore::DeprecationWarning:bedrock_agentcore.*",
+    "ignore::DeprecationWarning:strands.*",
+    "ignore::pydantic.PydanticDeprecatedSince20",
+]

@@ -1,0 +1,96 @@
+[
+  {
+    "pk": "CUSTOMER#CUST-001",
+    "customer_id": "CUST-001",
+    "name": "Alice Johnson",
+    "email": "alice@example.com",
+    "tier": "gold",
+    "order_ids": ["123", "321", "789"]
+  },
+  {
+    "pk": "CUSTOMER#CUST-002",
+    "customer_id": "CUST-002",
+    "name": "Bob Smith",
+    "email": "bob@example.com",
+    "tier": "standard",
+    "order_ids": ["456", "500", "504", "777"]
+  },
+  {
+    "pk": "ORDER#123",
+    "order_id": "123",
+    "customer_id": "CUST-001",
+    "status": "DELAYED",
+    "items": ["Noise-cancelling headphones"],
+    "total": 249.99,
+    "refunded_total": 0,
+    "carrier": "UPS",
+    "estimated_delivery": "2026-10-23",
+    "delay_reason": "Severe weather closed the carrier's Memphis hub; the parcel is held there until it reopens."
+  },
+  {
+    "pk": "ORDER#456",
+    "order_id": "456",
+    "customer_id": "CUST-002",
+    "status": "DELIVERED",
+    "items": ["Laptop Pro 16", "Docking station"],
+    "total": 6000.00,
+    "refunded_total": 0,
+    "carrier": "FedEx",
+    "estimated_delivery": "2026-10-02"
+  },
+  {
+    "pk": "ORDER#789",
+    "order_id": "789",
+    "customer_id": "CUST-001",
+    "status": "SHIPPED",
+    "items": ["USB-C charger"],
+    "total": 89.50,
+    "refunded_total": 0,
+    "carrier": "DHL",
+    "estimated_delivery": "2026-10-18"
+  },
+  {
+    "pk": "ORDER#321",
+    "order_id": "321",
+    "customer_id": "CUST-001",
+    "status": "DELIVERED",
+    "items": ["Mechanical keyboard"],
+    "total": 120.00,
+    "refunded_total": 0,
+    "carrier": "UPS",
+    "estimated_delivery": "2026-10-05"
+  },
+  {
+    "pk": "ORDER#500",
+    "order_id": "500",
+    "customer_id": "CUST-002",
+    "status": "SHIPPED",
+    "items": ["Webcam"],
+    "total": 59.00,
+    "refunded_total": 0,
+    "carrier": "UPS",
+    "estimated_delivery": "2026-10-20"
+  },
+  {
+    "pk": "ORDER#504",
+    "order_id": "504",
+    "customer_id": "CUST-002",
+    "status": "SHIPPED",
+    "items": ["Monitor arm"],
+    "total": 75.00,
+    "refunded_total": 0,
+    "carrier": "DHL",
+    "estimated_delivery": "2026-10-21"
+  },
+  {
+    "pk": "ORDER#777",
+    "order_id": "777",
+    "customer_id": "CUST-002",
+    "status": "PROCESSING",
+    "items": ["HDMI cable"],
+    "total": 19.99,
+    "refunded_total": 0,
+    "carrier": "USPS",
+    "estimated_delivery": "2026-10-24"
+  }
+]
