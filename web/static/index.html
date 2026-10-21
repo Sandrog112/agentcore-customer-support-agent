@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support agent console</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/app.css">
+  <script type="module" src="/static/js/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Support agent console</h1>
+    <p class="connection" id="connection" data-state="checking">Checking the deployment…</p>
+    <div class="masthead-actions">
+      <span class="record-status" id="record-status">Nothing recorded yet</span>
+      <button class="button" id="save-evidence" type="button" disabled>Save evidence</button>
+    </div>
+  </header>
+
+  <main class="console">
+    <aside class="plan" aria-label="Test plan">
+      <section class="plan-section">
+        <h2>Signed in as</h2>
+        <div class="customers" id="customers" role="radiogroup" aria-label="Customer"></div>
+        <ul class="orders" id="orders"></ul>
+      </section>
+
+      <section class="plan-section">
+        <h2>Session</h2>
+        <div class="session">
+          <code class="session-id" id="session-id"></code>
+          <button class="button button-quiet" id="new-session" type="button">New session</button>
+        </div>
+        <p class="hint">The agent remembers the conversation within a session. A new session starts fresh, but long-term preferences carry over.</p>
+      </section>
+
+      <section class="plan-section">
+        <h2>Scenarios</h2>
+        <div id="scenario-list"></div>
+      </section>
+    </aside>
+
+    <section class="conversation" aria-label="Conversation">
+      <div class="empty" id="empty">
+        <p class="empty-title" id="empty-title">Talk to the agent as a customer.</p>
+        <p class="empty-text" id="empty-text">Pick a scenario on the left, or write your own message below.</p>
+        <button class="button button-quiet" id="recheck" type="button" hidden>Check again</button>
+      </div>
+      <ol class="timeline" id="timeline" aria-live="polite" aria-label="Messages and tool calls"></ol>
+
+      <form class="composer" id="composer">
+        <div class="brief" id="brief" hidden></div>
+        <label class="visually-hidden" for="prompt">Message to the agent</label>
+        <textarea id="prompt" rows="3" placeholder="Write as the customer, e.g. Where is my order 123?" disabled></textarea>
+        <div class="composer-row">
+          <p class="hint">Enter sends. Shift+Enter adds a line.</p>
+          <button class="button button-primary" id="send" type="submit" disabled>Send</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="record" aria-label="Record">
+      <div class="tabs" role="tablist" aria-label="Record views">
+        <button class="tab" id="tab-details" type="button" role="tab" aria-selected="true" aria-controls="panel-details">Details</button>
+        <button class="tab" id="tab-tool" type="button" role="tab" aria-selected="false" aria-controls="panel-tool" tabindex="-1">Call a tool</button>
+        <button class="tab" id="tab-memory" type="button" role="tab" aria-selected="false" aria-controls="panel-memory" tabindex="-1">Memory</button>
+      </div>
+
+      <div class="panel" id="panel-details" role="tabpanel" aria-labelledby="tab-details"></div>
+
+      <div class="panel" id="panel-tool" role="tabpanel" aria-labelledby="tab-tool" hidden>
+        <form class="tool-form" id="tool-form">
+          <p class="hint">Calls a tool through the Gateway without the model, as <strong id="tool-actor"></strong>. AgentCore Policy still checks every call.</p>
+          <label class="field">
+            <span class="field-label">Tool</span>
+            <select id="tool-name"></select>
+          </label>
+          <label class="field">
+            <span class="field-label">Arguments (JSON)</span>
+            <textarea id="tool-args" rows="7" spellcheck="false"></textarea>
+          </label>
+          <p class="field-error" id="tool-error" hidden></p>
+          <button class="button button-primary" id="tool-submit" type="submit" disabled>Call tool</button>
+        </form>
+        <div class="tool-result" id="tool-result"></div>
+      </div>
+
+      <div class="panel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" hidden>
+        <div class="panel-head">
+          <h2 id="memory-title">Remembered about this customer</h2>
+          <button class="button button-quiet" id="memory-refresh" type="button">Refresh</button>
+        </div>
+        <p class="hint">Long-term preferences the agent extracted from earlier conversations. New ones appear about a minute after a conversation.</p>
+        <div id="memory-list"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

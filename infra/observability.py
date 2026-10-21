@@ -4,7 +4,7 @@ import contextlib
 import json
 from typing import Any
 
-from infra.aws import account_id, arn, client, ensure_log_group, ignore_missing, list_all
+from infra.aws import account_id, arn, client, ensure_log_group, ignore_missing, list_all, wait_for
 from infra.config import PREFIX
 
 OBSERVED_RESOURCES = ("gateway", "memory")
@@ -29,6 +29,8 @@ def enable_observability(resources: dict[str, str]) -> None:
     )
     if xray.get_trace_segment_destination()["Destination"] != "CloudWatchLogs":
         xray.update_trace_segment_destination(Destination="CloudWatchLogs")
+    # The switch is asynchronous (it can take several minutes), and trace deliveries are refused until it is ACTIVE.
+    wait_for(lambda: {"status": xray.get_trace_segment_destination()["Status"]}, ready="ACTIVE", timeout=1800)
 
     for kind, resource_arn in resources.items():
         log_group_arn = ensure_log_group(f"/aws/vendedlogs/bedrock-agentcore/{PREFIX}-{kind}")

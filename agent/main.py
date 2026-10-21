@@ -7,20 +7,25 @@ import re
 from typing import Any
 
 import boto3
+import httpx
 from anthropic import AsyncAnthropicBedrockMantle
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from bedrock_agentcore.memory.integrations.strands.session_manager import AgentCoreMemorySessionManager
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from bedrock_agentcore.runtime.context import RequestContext
+from openai import AsyncOpenAI
 from opentelemetry import trace
 from opentelemetry.trace import StatusCode
 from strands import Agent
+from strands.models import Model
 from strands.models.anthropic import AnthropicModel
+from strands.models.openai import OpenAIModel
 from strands.tools.mcp import MCPAgentTool
 
 from agent.config import PREFERENCES_NAMESPACE
 from agent.gateway import (
     TOOL_SEPARATOR,
+    IamAuth,
     RequesterBinding,
     ToolReliabilityHooks,
     gateway_client,
@@ -99,14 +104,25 @@ def invoke(payload: dict[str, Any], context: RequestContext) -> dict[str, Any]:
     }
 
 
-def _build_agent(session_id: str, actor_id: str, tools: list[MCPAgentTool]) -> Agent:
-    model = AnthropicModel(
-        model_id=os.getenv("BEDROCK_MODEL_ID") or DEFAULT_MODEL_ID,
-        max_tokens=16000,
-        params={"output_config": {"effort": "medium"}},
+def _build_model(model_id: str) -> Model:
+    """Claude through the Messages API, any other Bedrock model through the OpenAI-compatible Chat Completions API;
+    both are served by the bedrock-mantle endpoint and signed with the runtime role."""
+    if model_id.startswith("anthropic."):
+        model = AnthropicModel(model_id=model_id, max_tokens=16000, params={"output_config": {"effort": "medium"}})
+        model.client = AsyncAnthropicBedrockMantle(aws_region=_region())
+        return model
+    # Open-weight models such as openai.gpt-oss-120b are served from /v1; the api_key is a placeholder because
+    # IamAuth replaces the Authorization header with a SigV4 signature.
+    client = AsyncOpenAI(
+        base_url=f"https://bedrock-mantle.{_region()}.api.aws/v1",
+        api_key="sigv4",
+        http_client=httpx.AsyncClient(auth=IamAuth(_region(), service="bedrock-mantle"), timeout=120),
     )
-    # Claude Opus 5.5 on Bedrock is served by the Messages API endpoint (bedrock-mantle), signed with the runtime role.
-    model.client = AsyncAnthropicBedrockMantle(aws_region=_region())
+    return OpenAIModel(client=client, model_id=model_id, params={"max_tokens": 16000})
+
+
+def _build_agent(session_id: str, actor_id: str, tools: list[MCPAgentTool]) -> Agent:
+    model = _build_model(os.getenv("BEDROCK_MODEL_ID") or DEFAULT_MODEL_ID)
 
     memory = AgentCoreMemorySessionManager(
         AgentCoreMemoryConfig(

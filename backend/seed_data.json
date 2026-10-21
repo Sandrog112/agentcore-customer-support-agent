@@ -2,16 +2,16 @@
   {
     "pk": "CUSTOMER#CUST-001",
     "customer_id": "CUST-001",
-    "name": "Alice Johnson",
-    "email": "alice@example.com",
+    "name": "Lalo Kurtishvili",
+    "email": "lalo@gmail.com",
     "tier": "gold",
     "order_ids": ["123", "321", "789"]
   },
   {
     "pk": "CUSTOMER#CUST-002",
     "customer_id": "CUST-002",
-    "name": "Bob Smith",
-    "email": "bob@example.com",
+    "name": "Sandro Kurtishvili",
+    "email": "sandro@gmail.com",
     "tier": "standard",
     "order_ids": ["456", "500", "504", "777"]
   },
