@@ -1,0 +1,10 @@
+# Refund of 5000 denied by Policy at the Gateway; the model also called an unregistered tool name first
+# Source: CloudWatch Logs group aws/spans (Transaction Search), trace 1-6ada1b3e-0ef0a94d0cf0901814efe6d3
+# Columns: span name, status, duration, span id, status message; 'event:' lines are span events added by the agent
+
+POST /invocations                                    UNSET    7.03s span=0fbef75b0cdd3b2c 
+execute_tool get_order                               ERROR     0.0s span=248b6df46638b661 Unknown tool: get_order
+execute_tool support-tools___get_order               OK       0.13s span=b4901a3413fec549 
+AgentCore.Policy.AuthorizeAction                     OK       0.05s span=db1929644389ba88 
+execute_tool support-tools___refund_customer         ERROR     0.1s span=ac8f81c2b8a52fd3 Tool execution failed: Tool Execution Denied: Tool call not allowed due to policy enforcement [Policy evaluation denied due to forbid_refunds_over_limit-2zrdexttzq]
+AgentCore.Policy.AuthorizeAction                     OK       0.04s span=6123362de35b62d8 

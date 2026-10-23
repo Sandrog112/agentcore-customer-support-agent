@@ -1,0 +1,161 @@
+{
+  "started_at": "2026-10-23T07:48:50.257512+00:00",
+  "stack": {
+    "deployed": true,
+    "problem": null,
+    "identity": "arn:aws:iam::123456789012:user/agentcore-dev",
+    "links": {
+      "runtime_logs": "https://eu-north-1.console.aws.amazon.com/cloudwatch/home?region=eu-north-1#logsV2:log-groups/log-group/$252Faws$252Fbedrock-agentcore$252Fruntimes$252Fsupport_agent-HFLdSZELhw-DEFAULT",
+      "tool_logs": "https://eu-north-1.console.aws.amazon.com/cloudwatch/home?region=eu-north-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fsupport-agent-tools"
+    },
+    "region": "eu-north-1",
+    "runtime_arn": "arn:aws:bedrock-agentcore:eu-north-1:123456789012:runtime/support_agent-HFLdSZELhw",
+    "memory_id": "support_agent-jwuL3I8OKw",
+    "gateway_arn": "arn:aws:bedrock-agentcore:eu-north-1:123456789012:gateway/support-agent-wshxxxoowf"
+  },
+  "entries": [
+    {
+      "id": 1,
+      "kind": "tool",
+      "at": "2026-10-23T07:50:21+00:00",
+      "actor_id": "CUST-001",
+      "tool": "refund_customer",
+      "arguments": {
+        "order_id": "789",
+        "amount": 10,
+        "reason": "evidence",
+        "idempotency_key": "operation-evidence-1"
+      },
+      "result": {
+        "status": "success",
+        "toolUseId": "direct-ba39a713-4d3e-4eec-ab05-b493e1b295b3",
+        "content": [
+          {
+            "text": "{\"refund_id\":\"RF-F9CEBC0B68DD\",\"idempotency_key\":\"operation-evidence-1\",\"order_id\":\"789\",\"amount\":10,\"currency\":\"USD\",\"reason\":\"evidence\",\"status\":\"PROCESSED\",\"created_at\":\"2026-10-23T07:50:24.847455+00:00\",\"replayed\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "outcome": {
+        "label": "Succeeded",
+        "tone": "ok",
+        "detail": ""
+      },
+      "error": null,
+      "duration_ms": 3398
+    },
+    {
+      "id": 2,
+      "kind": "tool",
+      "at": "2026-10-23T07:52:06+00:00",
+      "actor_id": "CUST-001",
+      "tool": "refund_customer",
+      "arguments": {
+        "order_id": "789",
+        "amount": 10,
+        "reason": "evidence",
+        "idempotency_key": "operation-evidence-1"
+      },
+      "result": {
+        "status": "success",
+        "toolUseId": "direct-ed21275e-9f62-4aa4-bbf9-64e60466d032",
+        "content": [
+          {
+            "text": "{\"created_at\":\"2026-10-23T07:50:24.847455+00:00\",\"status\":\"PROCESSED\",\"refund_id\":\"RF-F9CEBC0B68DD\",\"idempotency_key\":\"operation-evidence-1\",\"amount\":10,\"order_id\":\"789\",\"reason\":\"evidence\",\"currency\":\"USD\",\"replayed\":true}"
+          }
+        ],
+        "isError": false
+      },
+      "outcome": {
+        "label": "Replayed",
+        "tone": "info",
+        "detail": "Returned the refund already issued with this key."
+      },
+      "error": null,
+      "duration_ms": 1641
+    },
+    {
+      "id": 3,
+      "kind": "tool",
+      "at": "2026-10-23T07:53:16+00:00",
+      "actor_id": "CUST-002",
+      "tool": "refund_customer",
+      "arguments": {
+        "order_id": "456",
+        "amount": 5000,
+        "reason": "evidence",
+        "idempotency_key": "operation-evidence-2"
+      },
+      "result": {
+        "status": "error",
+        "toolUseId": "direct-770ab4f5-5e2e-454a-9f6a-e148081a6fdf",
+        "content": [
+          {
+            "text": "Tool execution failed: Tool Execution Denied: Tool call not allowed due to policy enforcement [Policy evaluation denied due to forbid_refunds_over_limit-2zrdexttzq]"
+          }
+        ]
+      },
+      "outcome": {
+        "label": "Denied at Gateway",
+        "tone": "denied",
+        "detail": "Tool execution failed: Tool Execution Denied: Tool call not allowed due to policy enforcement [Policy evaluation denied due to forbid_refunds_over_limit-2zrdexttzq]"
+      },
+      "error": null,
+      "duration_ms": 1048
+    },
+    {
+      "id": 4,
+      "kind": "tool",
+      "at": "2026-10-23T07:54:26+00:00",
+      "actor_id": "CUST-001",
+      "tool": "get_customer",
+      "arguments": {
+        "customer_id": "CUST-002"
+      },
+      "result": {
+        "status": "success",
+        "toolUseId": "direct-c117d010-c08b-4072-8d10-d2099cc176e7",
+        "content": [
+          {
+            "text": "{\"error\":{\"code\":\"FORBIDDEN\",\"message\":\"Customer CUST-002 is not the signed-in customer.\",\"retryable\":false}}"
+          }
+        ],
+        "isError": false
+      },
+      "outcome": {
+        "label": "Access refused",
+        "tone": "denied",
+        "detail": "FORBIDDEN: Customer CUST-002 is not the signed-in customer."
+      },
+      "error": null,
+      "duration_ms": 1510
+    },
+    {
+      "id": 5,
+      "kind": "tool",
+      "at": "2026-10-23T07:55:09+00:00",
+      "actor_id": "CUST-001",
+      "tool": "get_order",
+      "arguments": {
+        "order_id": "CUST-001"
+      },
+      "result": {
+        "status": "success",
+        "toolUseId": "direct-c95de0f9-8bf4-4746-949f-7f111f1a8c05",
+        "content": [
+          {
+            "text": "{\"error\":{\"code\":\"INVALID_ARGUMENT\",\"message\":\"'CUST-001' is a customer id, not an order id. Use get_customer.\",\"retryable\":false}}"
+          }
+        ],
+        "isError": false
+      },
+      "outcome": {
+        "label": "Invalid input",
+        "tone": "failed",
+        "detail": "INVALID_ARGUMENT: 'CUST-001' is a customer id, not an order id. Use get_customer."
+      },
+      "error": null,
+      "duration_ms": 1313
+    }
+  ]
+}

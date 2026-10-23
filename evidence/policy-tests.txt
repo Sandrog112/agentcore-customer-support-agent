@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.0, pytest-9.1.1, pluggy-1.7.0 -- /Users/aleksandre_kurtishvili/Desktop/bedrock/agentcore-customer-support-agent/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/aleksandre_kurtishvili/Desktop/bedrock/agentcore-customer-support-agent
+configfile: pyproject.toml
+plugins: platformdirs-4.13.3, anyio-4.15.1
+collecting ... collected 11 items
+
+tests/test_policies.py::test_every_placeholder_is_filled PASSED          [  9%]
+tests/test_policies.py::test_refunds_are_allowed_up_to_the_limit[0.01-Decision.Allow] PASSED [ 18%]
+tests/test_policies.py::test_refunds_are_allowed_up_to_the_limit[1000.00-Decision.Allow] PASSED [ 27%]
+tests/test_policies.py::test_refunds_are_allowed_up_to_the_limit[1000.01-Decision.Deny] PASSED [ 36%]
+tests/test_policies.py::test_refunds_are_allowed_up_to_the_limit[5000.00-Decision.Deny] PASSED [ 45%]
+tests/test_policies.py::test_lookups_are_allowed[get_order] PASSED       [ 54%]
+tests/test_policies.py::test_lookups_are_allowed[get_customer] PASSED    [ 63%]
+tests/test_policies.py::test_operator_may_call_the_tools PASSED          [ 72%]
+tests/test_policies.py::test_other_iam_identities_are_denied[get_order] PASSED [ 81%]
+tests/test_policies.py::test_other_iam_identities_are_denied[refund_customer] PASSED [ 90%]
+tests/test_policies.py::test_unknown_tools_are_denied PASSED             [100%]
+
+============================== 11 passed in 0.04s ==============================

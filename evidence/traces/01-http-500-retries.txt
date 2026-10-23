@@ -1,0 +1,18 @@
+# Carrier HTTP 500: get_order retried with backoff, then gave up (order 500)
+# Source: CloudWatch Logs group aws/spans (Transaction Search), trace 1-6ada1bdb-5528f6a710f9478a434b6bb0
+# Columns: span name, status, duration, span id, status message; 'event:' lines are span events added by the agent
+
+POST /invocations                                    UNSET    8.91s span=3dc59cf1343a6b5b 
+execute_tool get_order                               ERROR     0.0s span=a7af4bcc44a129fc Unknown tool: get_order
+execute_tool support-tools___get_order               ERROR    1.55s span=d7169529746148ab {"error":{"code":"UPSTREAM_ERROR","message":"Carrier tracking API returned HTTP 500.","retryable":true}}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}
+      event: tool.retry {'retry.attempt': 1, 'retry.delay_seconds': 0.46360603965917313, 'tool.name': 'support-tools___get_order'}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}
+      event: tool.retry {'retry.attempt': 2, 'retry.delay_seconds': 0.6561960586485374, 'tool.name': 'support-tools___get_order'}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}
+execute_tool support-tools___get_order               ERROR     1.6s span=140d3d4142e9e70c {"error":{"code":"UPSTREAM_ERROR","message":"Carrier tracking API returned HTTP 500.","retryable":true}}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}
+      event: tool.retry {'retry.attempt': 1, 'retry.delay_seconds': 0.26230919045991397, 'tool.name': 'support-tools___get_order'}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}
+      event: tool.retry {'retry.attempt': 2, 'retry.delay_seconds': 0.890773338954878, 'tool.name': 'support-tools___get_order'}
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___get_order', 'error.code': 'UPSTREAM_ERROR'}

@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from strands.hooks import AfterToolCallEvent, BeforeToolCallEvent, HookProvider, HookRegistry
 
-from agent.gateway import RequesterBinding, ToolReliabilityHooks, is_retryable
+from agent.gateway import RefundIdempotency, RequesterBinding, ToolReliabilityHooks, is_retryable
 
 TRANSIENT = {"error": {"code": "UPSTREAM_ERROR", "message": "HTTP 500", "retryable": True}}
 PERMANENT = {"error": {"code": "INVALID_ARGUMENT", "message": "bad order_id", "retryable": False}}
@@ -65,6 +65,24 @@ def test_requester_comes_from_the_signed_in_customer_not_the_model():
 
     assert event.tool_use["input"]["requester_id"] == "CUST-001"
     assert use["input"]["requester_id"] == "CUST-002"  # the history keeps the model's own arguments
+
+
+def refund_key(session_id: str = "session-1", name: str = "support-tools___refund_customer", **arguments: Any) -> str:
+    arguments = {"order_id": "123", "amount": 10, **arguments}
+    event = before_call(registry_with(RefundIdempotency(session_id)), tool_use(name=name, **arguments))
+    return event.tool_use["input"].get("idempotency_key")
+
+
+def test_refund_key_is_derived_from_the_request_not_chosen_by_the_model():
+    key = refund_key(idempotency_key="made-up-1")
+
+    assert key == refund_key(idempotency_key="made-up-2") == refund_key(amount=10.0)
+    assert len({key, refund_key(amount=11), refund_key(order_id="321"), refund_key(session_id="session-2")}) == 4
+
+
+def test_only_valid_refunds_get_a_key():
+    assert refund_key(name="support-tools___get_order") is None
+    assert refund_key(amount="ten") is None
 
 
 def test_transient_failures_are_retried_with_exponential_backoff():

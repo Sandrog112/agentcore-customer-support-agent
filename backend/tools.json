@@ -55,14 +55,14 @@
         },
         "idempotency_key": {
           "type": "string",
-          "description": "Unique key for this refund operation, for example \"operation-123\". Reuse the same key when retrying the same refund."
+          "description": "Unique key for this refund operation, for example \"operation-123\". Set by the platform for the agent, which leaves it out; direct callers must send one and reuse it when retrying."
         },
         "requester_id": {
           "type": "string",
           "description": "Set by the platform to the signed-in customer; leave it out."
         }
       },
-      "required": ["order_id", "amount", "reason", "idempotency_key"]
+      "required": ["order_id", "amount", "reason"]
     }
   }
 ]

@@ -20,6 +20,7 @@ const state = {
   loadedPrompt: null,
   runs: {},
   busy: false,
+  memoryWait: false,
   tab: "details",
 };
 
@@ -195,7 +196,8 @@ function setConnection(kind, text) {
 function updateControls() {
   const usable = ready() && !state.busy;
   $("#prompt").disabled = !ready();
-  $("#send").disabled = !usable;
+  $("#send").disabled = !usable || state.memoryWait;
+  $("#send").textContent = state.memoryWait ? "Waiting for Memory…" : "Send";
   $("#tool-submit").disabled = !usable;
 }
 
@@ -383,9 +385,32 @@ function loadStep(index) {
   renderBrief();
   renderScenarios();
   $("#prompt").focus();
+  waitForMemory(step.needs_memory ? state.actorId : null);
+}
+
+let memoryPoll = 0;
+
+// Long-term memory is extracted about a minute after a turn: Send stays disabled until a record is listed.
+async function waitForMemory(actorId) {
+  const poll = ++memoryPoll;
+  state.memoryWait = Boolean(actorId);
+  updateControls();
+  while (actorId && poll === memoryPoll) {
+    try {
+      if ((await api(`/api/memory?actor_id=${encodeURIComponent(actorId)}`)).records.length) break;
+    } catch {
+      // keep waiting: the next poll may succeed
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+  if (poll !== memoryPoll) return;
+  state.memoryWait = false;
+  updateControls();
+  if (actorId) toast("Memory now holds the preference: this step is ready to send.");
 }
 
 function clearScenario() {
+  waitForMemory(null);
   state.scenario = null;
   state.loadedPrompt = null;
   renderBrief();
@@ -559,7 +584,7 @@ function waitingTurn(prompt, actorId) {
 async function sendMessage(event) {
   event.preventDefault();
   const prompt = $("#prompt").value.trim();
-  if (!prompt || state.busy || !ready()) return;
+  if (!prompt || state.busy || state.memoryWait || !ready()) return;
   const scenario = state.scenario;
   const step = state.step;
   const tag = scenarioTag(prompt);

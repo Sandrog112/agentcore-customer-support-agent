@@ -1,0 +1,11 @@
+# Refund committed but the response was lost: retried with the same key, the existing refund is returned (order 321)
+# Source: CloudWatch Logs group aws/spans (Transaction Search), trace 1-6ada1c63-2d2d0b69357d6197050dd5d9
+# Columns: span name, status, duration, span id, status message; 'event:' lines are span events added by the agent
+
+POST /invocations                                    UNSET    6.96s span=df9d45ecaf9e92bd 
+execute_tool get_order                               ERROR     0.0s span=2ba64047e5eaa668 Unknown tool: get_order
+execute_tool support-tools___get_order               OK       0.13s span=945c0d0e3e740705 
+execute_tool support-tools___refund_customer         OK       0.82s span=5737e37cc7249125 
+      event: tool.backend_error {'error.retryable': True, 'tool.name': 'support-tools___refund_customer', 'error.code': 'UPSTREAM_ERROR'}
+      event: tool.retry {'retry.attempt': 1, 'retry.delay_seconds': 0.4769508504608632, 'tool.name': 'support-tools___refund_customer'}
+      event: tool.replay_recovered {'tool.name': 'support-tools___refund_customer'}

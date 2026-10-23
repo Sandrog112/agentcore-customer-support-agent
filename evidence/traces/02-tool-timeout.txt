@@ -1,0 +1,12 @@
+# Tool timeout: Lambda sleeps 10 s, tool timeout is 6 s, three timed-out attempts (order 504)
+# Source: CloudWatch Logs group aws/spans (Transaction Search), trace 1-6ada1c05-45cede806380886a36600875
+# Columns: span name, status, duration, span id, status message; 'event:' lines are span events added by the agent
+
+POST /invocations                                    UNSET   25.83s span=235fa38d8d251209 
+execute_tool get_order                               ERROR     0.0s span=62040ce618898a77 Unknown tool: get_order
+execute_tool support-tools___get_order               ERROR   18.99s span=df9abbcdd90b0d52 Tool execution failed: Request 'tools/call' timed out
+      event: tool.retry {'retry.attempt': 1, 'retry.delay_seconds': 0.3363345012278339, 'tool.name': 'support-tools___get_order'}
+      event: tool.retry {'retry.attempt': 2, 'retry.delay_seconds': 0.6189610319122134, 'tool.name': 'support-tools___get_order'}
+MCP send tools/call support-tools___get_order        ERROR    6.01s span=2b901a85bd3cf7f8 TimeoutError: 
+MCP send tools/call support-tools___get_order        ERROR     6.0s span=bb4fc01e51ed3977 TimeoutError: 
+MCP send tools/call support-tools___get_order        ERROR     6.0s span=8c1d02caca0f6c86 TimeoutError: 

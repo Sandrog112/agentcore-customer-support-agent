@@ -5,6 +5,7 @@ credentials (the runtime execution role on AgentCore Runtime), so no secrets or 
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import random
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 TOOL_SEPARATOR = "___"  # Gateway tool names are "<target>___<tool>"
 REQUESTER_FIELD = "requester_id"  # tool argument the backend authorizes against, see backend/handler.py
+IDEMPOTENCY_FIELD = "idempotency_key"  # tool argument that makes refunds idempotent, see backend/store.py
 _NOT_RETRYABLE = re.compile(r"denied|not authori[sz]ed|unauthori[sz]ed|forbidden|policy", re.IGNORECASE)
 _TRANSIENT = re.compile(
     r"timed? ?out|throttl|too many requests|temporarily unavailable|service unavailable|internal (server )?error",
@@ -134,6 +136,30 @@ class RequesterBinding(HookProvider):
         # A new dict, so the conversation history keeps the model's own arguments.
         arguments = event.tool_use["input"] if isinstance(event.tool_use["input"], dict) else {}
         event.tool_use = {**event.tool_use, "input": {**arguments, REQUESTER_FIELD: self._actor_id}}
+
+
+class RefundIdempotency(HookProvider):
+    """Derives the refund idempotency key from the session, order and amount instead of trusting the model.
+
+    Repeating the same refund request in a session, however the model words it, always carries the same key,
+    so the backend returns the existing refund instead of creating a second one.
+    """
+
+    def __init__(self, session_id: str) -> None:
+        self._session_id = session_id
+
+    def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
+        registry.add_callback(BeforeToolCallEvent, self._bind_key)
+
+    def _bind_key(self, event: BeforeToolCallEvent) -> None:
+        tool_use = event.tool_use
+        arguments = tool_use["input"]
+        amount = arguments.get("amount") if isinstance(arguments, dict) else None
+        if not tool_use["name"].endswith(f"{TOOL_SEPARATOR}refund_customer") or not isinstance(amount, int | float):
+            return  # other tools have no key; an invalid amount is rejected by the backend
+        request = f"{self._session_id}|{arguments.get('order_id')}|{amount:.2f}"
+        key = f"refund-{hashlib.sha256(request.encode()).hexdigest()[:32]}"
+        event.tool_use = {**tool_use, "input": {**arguments, IDEMPOTENCY_FIELD: key}}
 
 
 class ToolReliabilityHooks(HookProvider):

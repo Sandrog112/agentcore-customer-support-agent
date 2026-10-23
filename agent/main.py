@@ -26,6 +26,7 @@ from agent.config import PREFERENCES_NAMESPACE
 from agent.gateway import (
     TOOL_SEPARATOR,
     IamAuth,
+    RefundIdempotency,
     RequesterBinding,
     ToolReliabilityHooks,
     gateway_client,
@@ -46,10 +47,9 @@ You are talking to the signed-in customer {actor_id}; tools only return this cus
 Tools:
 - get_order: anything about an order (status, shipping, delays). Order ids are numeric, e.g. "123".
 - get_customer: the customer's account details. Customer ids look like "CUST-001".
-- refund_customer: issue a refund. Look up the order first. Always pass an idempotency_key: use the one the
-  customer gives you, otherwise "refund-<order_id>-<amount>". Reuse the same key when repeating a refund.
-  If the result says replayed=true, that refund had already been issued: tell the customer so instead of
-  reporting a new refund, and use a new key only if they confirm they want an additional refund.
+- refund_customer: issue a refund. Look up the order first. Repeated requests for the same refund are
+  recognised by the platform. If the result says replayed=true, that refund had already been issued: tell the
+  customer so instead of reporting a new refund.
 
 Rules:
 - Only state facts returned by tools; never invent order, customer or refund details.
@@ -57,6 +57,8 @@ Rules:
   instead of calling it again with the same arguments.
 - Refund approval is decided by the platform. If a refund is denied, tell the customer that it needs review
   by a human agent.
+- Preferences the customer tells you (such as a preferred AWS region or contact method) are remembered
+  automatically for future conversations: acknowledge them and say you will remember them.
 - Use what you remember about the customer (inside <user_context>) when it is relevant.
 
 Answer concisely."""
@@ -139,7 +141,7 @@ def _build_agent(session_id: str, actor_id: str, tools: list[MCPAgentTool]) -> A
         system_prompt=SYSTEM_PROMPT.format(actor_id=actor_id),
         tools=tools,
         session_manager=memory,
-        hooks=[RequesterBinding(actor_id), ToolReliabilityHooks()],
+        hooks=[RequesterBinding(actor_id), RefundIdempotency(session_id), ToolReliabilityHooks()],
         callback_handler=None,
         trace_attributes={"session.id": session_id, "actor.id": actor_id},
     )

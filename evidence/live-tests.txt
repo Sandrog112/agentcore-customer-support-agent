@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.0, pytest-9.1.1, pluggy-1.7.0 -- /Users/aleksandre_kurtishvili/Desktop/bedrock/agentcore-customer-support-agent/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/aleksandre_kurtishvili/Desktop/bedrock/agentcore-customer-support-agent
+configfile: pyproject.toml
+testpaths: tests
+plugins: platformdirs-4.13.3, anyio-4.15.1
+collecting ... collected 85 items / 78 deselected / 7 selected
+
+tests/test_live.py::test_agent_checks_a_delayed_order PASSED             [ 14%]
+tests/test_live.py::test_agent_retrieves_customer_information PASSED     [ 28%]
+tests/test_live.py::test_refund_up_to_the_limit_is_allowed PASSED        [ 42%]
+tests/test_live.py::test_refund_over_the_limit_is_denied_by_policy PASSED [ 57%]
+tests/test_live.py::test_prompt_injection_cannot_bypass_authorization PASSED [ 71%]
+tests/test_live.py::test_retried_refund_returns_the_existing_refund PASSED [ 85%]
+tests/test_live.py::test_preference_is_remembered_in_a_new_session PASSED [100%]
+
+================= 7 passed, 78 deselected in 146.35s (0:02:26) =================
