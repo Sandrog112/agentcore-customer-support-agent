@@ -1,0 +1,18 @@
+# Tool names: ordinary order requests select the registered tool on the first call
+# Source: CloudWatch Logs group aws/spans (Transaction Search); one trace per request below
+# Columns: trace id, span name, status, duration, status message. An unprefixed 'execute_tool get_order'
+# row or an 'Unknown tool' message would be the old failure
+
+Requests:
+1-6adf06bf-0862e33d23e5fb26455d12c4  CUST-001  'Why is my order 123 delayed?'  tool outcomes: ['Succeeded']
+1-6adf06cb-076963fc6bb48724486bd096  CUST-001  "What's the status of order 789?"  tool outcomes: ['Succeeded']
+1-6adf06d8-1014ffe864956809002755f9  CUST-002  'Where is my order 456?'  tool outcomes: ['Succeeded']
+1-6adf06e3-19374ae06416bc8642e411d0  CUST-001  'Has order 123 shipped yet?'  tool outcomes: ['Succeeded']
+
+Spans:
+6adf06bf0862e33d23e5fb26455d12c4  execute_tool support-tools___get_order           OK      0.13s 
+6adf06cb076963fc6bb48724486bd096  execute_tool support-tools___get_order           OK      0.13s 
+6adf06d81014ffe864956809002755f9  execute_tool support-tools___get_order           OK      0.11s 
+6adf06e319374ae06416bc8642e411d0  execute_tool support-tools___get_order           OK      0.13s 
+
+unprefixed get_order spans: 0

@@ -2,7 +2,7 @@
 
     uv run --env-file .env pytest -m live -v
 
-Refunds use fixed idempotency keys, so re-running the suite replays them instead of refunding again.
+Refunds use fixed idempotency keys and operation ids, so re-running the suite replays them instead of refunding again.
 """
 
 import json
@@ -43,11 +43,21 @@ def refunded_total(order_id: str, actor: str) -> float:
     return payload(call_tool("get_order", {"order_id": order_id}, actor))["refunded_total"]
 
 
+def agent_turn(prompt: str, actor: str, operation_id: str | None = None) -> tuple[dict[str, Any], list[dict]]:
+    """Send one message in a new session; returns the answer and the tool calls the turn made."""
+    outputs = load_outputs()
+    session_id = f"session-{uuid.uuid4()}"
+    answer = invoke_agent(prompt, actor, session_id, operation_id)
+    return answer, turn_tool_calls(outputs["memory_id"], outputs["region"], actor, session_id, prompt) or []
+
+
 def test_agent_checks_a_delayed_order():
-    answer = invoke_agent("Why is my order 123 delayed?", LALO)
+    answer, calls = agent_turn("Why is my order 123 delayed?", LALO)
 
     assert answer["tool_calls"].get("get_order")
     assert "weather" in answer["response"].lower()
+    # The prompt names the registered tools, so the first call succeeds instead of failing as an unknown tool.
+    assert [call["outcome"]["label"] for call in calls] == ["Succeeded"]
 
 
 def test_agent_retrieves_customer_information():
@@ -110,3 +120,20 @@ def test_preference_is_remembered_in_a_new_session():
         if mentions(invoke_agent("Which AWS region do I prefer?", actor)["response"], "eu-west-1"):
             return
     pytest.fail("the preference was not recalled in a new session")
+
+
+def refund_id_for(operation_id: str) -> str:
+    """The id of the refund the agent made for this operation, in a new session."""
+    prompt = "Please refund $5 for order 789, the charger arrived scratched."
+    _, calls = agent_turn(prompt, LALO, operation_id)
+    refunds = [call for call in calls if call["tool"] == "refund_customer"]
+    assert refunds, "the model never called refund_customer"
+    return payload(refunds[-1]["result"])["refund_id"]
+
+
+def test_same_operation_in_two_sessions_returns_the_original_refund():
+    assert refund_id_for("live-operation-same") == refund_id_for("live-operation-same")
+
+
+def test_distinct_operations_with_the_same_order_and_amount_are_separate_refunds():
+    assert refund_id_for("live-operation-a") != refund_id_for("live-operation-b")

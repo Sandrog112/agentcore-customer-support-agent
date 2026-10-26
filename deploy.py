@@ -101,12 +101,19 @@ def load_outputs() -> dict[str, str]:
     return json.loads(OUTPUTS_FILE.read_text())
 
 
-def invoke_agent(prompt: str, actor_id: str, session_id: str | None = None) -> dict[str, Any]:
-    """Send one message to the deployed agent. Runtime session ids must be at least 33 characters."""
+def invoke_agent(
+    prompt: str, actor_id: str, session_id: str | None = None, operation_id: str | None = None
+) -> dict[str, Any]:
+    """Send one message to the deployed agent. Runtime session ids must be at least 33 characters.
+
+    `operation_id` is the refund idempotency key: pass the same one to retry a request in any session; a new
+    one is generated otherwise.
+    """
+    payload = {"prompt": prompt, "actor_id": actor_id, "operation_id": operation_id or f"operation-{uuid.uuid4()}"}
     response = client(AGENTCORE).invoke_agent_runtime(
         agentRuntimeArn=load_outputs()["runtime_arn"],
         runtimeSessionId=session_id or f"session-{uuid.uuid4()}",
-        payload=json.dumps({"prompt": prompt, "actor_id": actor_id}).encode(),
+        payload=json.dumps(payload).encode(),
         contentType="application/json",
         accept="application/json",
     )
@@ -135,6 +142,7 @@ def main() -> None:
     chat.add_argument("prompt")
     chat.add_argument("--actor", default="CUST-001", help="signed-in customer id (default: CUST-001)")
     chat.add_argument("--session", help="runtime session id (min. 33 characters); a new session if omitted")
+    chat.add_argument("--operation", help="operation id: reuse it to retry a request, a new one if omitted")
     direct = commands.add_parser("call-tool", help="call a Gateway tool directly, without the model")
     direct.add_argument("tool", help="get_order, get_customer or refund_customer")
     direct.add_argument("arguments", type=json.loads, help="tool arguments as a JSON object")
@@ -145,7 +153,7 @@ def main() -> None:
     if args.command == "deploy":
         deploy()
     elif args.command == "invoke":
-        print(json.dumps(invoke_agent(args.prompt, args.actor, args.session), indent=2))
+        print(json.dumps(invoke_agent(args.prompt, args.actor, args.session, args.operation), indent=2))
     elif args.command == "call-tool":
         print(json.dumps(call_tool(args.tool, args.arguments, args.actor), indent=2, default=str))
     else:

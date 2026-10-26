@@ -67,22 +67,44 @@ def test_requester_comes_from_the_signed_in_customer_not_the_model():
     assert use["input"]["requester_id"] == "CUST-002"  # the history keeps the model's own arguments
 
 
-def refund_key(session_id: str = "session-1", name: str = "support-tools___refund_customer", **arguments: Any) -> str:
+def refund_key(operation_id: str = "op-1", name: str = "support-tools___refund_customer", **arguments: Any) -> str:
     arguments = {"order_id": "123", "amount": 10, **arguments}
-    event = before_call(registry_with(RefundIdempotency(session_id)), tool_use(name=name, **arguments))
+    event = before_call(registry_with(RefundIdempotency(operation_id)), tool_use(name=name, **arguments))
     return event.tool_use["input"].get("idempotency_key")
 
 
-def test_refund_key_is_derived_from_the_request_not_chosen_by_the_model():
-    key = refund_key(idempotency_key="made-up-1")
-
-    assert key == refund_key(idempotency_key="made-up-2") == refund_key(amount=10.0)
-    assert len({key, refund_key(amount=11), refund_key(order_id="321"), refund_key(session_id="session-2")}) == 4
+def test_refund_key_is_the_callers_operation_id_not_chosen_by_the_model():
+    assert refund_key("operation-123") == "operation-123"
+    assert refund_key(idempotency_key="made-up") == "op-1"  # the model's key is overwritten
 
 
-def test_only_valid_refunds_get_a_key():
+def test_only_refunds_get_a_key():
     assert refund_key(name="support-tools___get_order") is None
-    assert refund_key(amount="ten") is None
+
+
+def test_same_operation_in_two_sessions_returns_the_original_refund(call_tool, refund_count):
+    refund = {"order_id": "123", "amount": 50, "reason": "Arrived late"}
+
+    # Each invocation builds its own hook, as a new session does; the key depends on the operation only.
+    first = call_tool("refund_customer", requester_id="CUST-001", idempotency_key=refund_key(**refund), **refund)
+    retry = call_tool("refund_customer", requester_id="CUST-001", idempotency_key=refund_key(**refund), **refund)
+
+    assert retry["replayed"] is True
+    assert retry["refund_id"] == first["refund_id"]
+    assert refund_count() == 1
+
+
+def test_distinct_operations_with_the_same_order_and_amount_are_separate_refunds(call_tool, refund_count):
+    refund = {"order_id": "123", "amount": 50, "reason": "Arrived late"}
+
+    refunds = [
+        call_tool("refund_customer", requester_id="CUST-001", idempotency_key=refund_key(operation, **refund), **refund)
+        for operation in ("op-1", "op-2")
+    ]
+
+    assert [item["replayed"] for item in refunds] == [False, False]
+    assert refunds[0]["refund_id"] != refunds[1]["refund_id"]
+    assert refund_count() == 2
 
 
 def test_transient_failures_are_retried_with_exponential_backoff():

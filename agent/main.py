@@ -38,16 +38,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL_ID = "anthropic.claude-opus-5-5"
 TOOL_TIMEOUT_SECONDS = 6
 ACTOR_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+OPERATION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
 
 # Access and refund limits are deliberately absent: the backend binds every tool call to the signed-in customer,
-# and AgentCore Policy at the Gateway decides refunds, so neither depends on the prompt.
+# and AgentCore Policy at the Gateway decides refunds, so neither depends on the prompt. The tool names are filled
+# in from the discovered Gateway tools, which are registered as "<target>___<tool>".
 SYSTEM_PROMPT = """You are the customer support agent of an online electronics store.
 You are talking to the signed-in customer {actor_id}; tools only return this customer's own account and orders.
 
-Tools:
-- get_order: anything about an order (status, shipping, delays). Order ids are numeric, e.g. "123".
-- get_customer: the customer's account details. Customer ids look like "CUST-001".
-- refund_customer: issue a refund. Look up the order first. Repeated requests for the same refund are
+Tools (use these exact names):
+- {get_order}: anything about an order (status, shipping, delays). Order ids are numeric, e.g. "123".
+- {get_customer}: the customer's account details. Customer ids look like "CUST-001".
+- {refund_customer}: issue a refund. Look up the order first. Repeated requests for the same refund are
   recognised by the platform. If the result says replayed=true, that refund had already been issued: tell the
   customer so instead of reporting a new refund.
 
@@ -68,26 +70,33 @@ app = BedrockAgentCoreApp()
 
 @app.entrypoint
 def invoke(payload: dict[str, Any], context: RequestContext) -> dict[str, Any]:
-    """Answer one customer message. Payload: {"prompt": str, "actor_id": str}.
+    """Answer one customer message. Payload: {"prompt": str, "actor_id": str, "operation_id": str}.
 
     The runtime only accepts SigV4-authenticated callers (the support front end), which authenticate the
     customer and pass their id as actor_id. It scopes the conversation, the remembered preferences and, through
     RequesterBinding, every tool call.
+
+    operation_id identifies the customer's request and is the refund idempotency key: the caller reuses it when it
+    retries the request, in any session, and uses a new one for a new request. A refund repeated under the same
+    operation_id returns the original refund; under another one it is a separate refund.
     """
     prompt = payload.get("prompt")
     actor_id = payload.get("actor_id")
+    operation_id = payload.get("operation_id")
     if not isinstance(prompt, str) or not prompt.strip():
         return {"error": "'prompt' must be a non-empty string."}
     if not isinstance(actor_id, str) or not ACTOR_ID.fullmatch(actor_id):
         return {"error": "'actor_id' must be 1-64 letters, digits, '-' or '_'."}
     if not context.session_id:
         return {"error": "A runtime session id is required."}
+    if not isinstance(operation_id, str) or not OPERATION_ID.fullmatch(operation_id):
+        return {"error": "'operation_id' must be 1-64 letters, digits or . _ : - characters."}
 
     trace_id = _current_trace_id()
     try:
         with gateway_client(os.environ["GATEWAY_URL"], _region()) as gateway:
             tools = list_gateway_tools(gateway, TOOL_TIMEOUT_SECONDS)
-            result = _build_agent(context.session_id, actor_id, tools)(prompt)
+            result = _build_agent(context.session_id, actor_id, operation_id, tools)(prompt)
     except Exception as error:
         logger.exception("session=<%s>, trace=<%s> | invocation failed", context.session_id, trace_id)
         # The caller gets a normal response, so mark the invocation span failed to keep it findable in traces.
@@ -123,7 +132,13 @@ def _build_model(model_id: str) -> Model:
     return OpenAIModel(client=client, model_id=model_id, params={"max_tokens": 16000})
 
 
-def _build_agent(session_id: str, actor_id: str, tools: list[MCPAgentTool]) -> Agent:
+def _system_prompt(actor_id: str, tools: list[MCPAgentTool]) -> str:
+    """The prompt with each tool's registered name; a missing tool fails the invocation, not the model."""
+    names = {tool.tool_name.split(TOOL_SEPARATOR)[-1]: tool.tool_name for tool in tools}
+    return SYSTEM_PROMPT.format(actor_id=actor_id, **names)
+
+
+def _build_agent(session_id: str, actor_id: str, operation_id: str, tools: list[MCPAgentTool]) -> Agent:
     model = _build_model(os.getenv("BEDROCK_MODEL_ID") or DEFAULT_MODEL_ID)
 
     memory = AgentCoreMemorySessionManager(
@@ -138,10 +153,10 @@ def _build_agent(session_id: str, actor_id: str, tools: list[MCPAgentTool]) -> A
     agent = Agent(
         name="customer_support_agent",
         model=model,
-        system_prompt=SYSTEM_PROMPT.format(actor_id=actor_id),
+        system_prompt=_system_prompt(actor_id, tools),
         tools=tools,
         session_manager=memory,
-        hooks=[RequesterBinding(actor_id), RefundIdempotency(session_id), ToolReliabilityHooks()],
+        hooks=[RequesterBinding(actor_id), RefundIdempotency(operation_id), ToolReliabilityHooks()],
         callback_handler=None,
         trace_attributes={"session.id": session_id, "actor.id": actor_id},
     )

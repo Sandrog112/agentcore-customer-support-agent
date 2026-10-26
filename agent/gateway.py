@@ -5,7 +5,6 @@ credentials (the runtime execution role on AgentCore Runtime), so no secrets or 
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import random
@@ -139,27 +138,26 @@ class RequesterBinding(HookProvider):
 
 
 class RefundIdempotency(HookProvider):
-    """Derives the refund idempotency key from the session, order and amount instead of trusting the model.
+    """Binds the caller's operation id as the refund idempotency key instead of trusting the model.
 
-    Repeating the same refund request in a session, however the model words it, always carries the same key,
-    so the backend returns the existing refund instead of creating a second one.
+    Repeating a refund within an operation, however the model words it and in whichever session, carries the same
+    key, so the backend returns the existing refund instead of creating a second one. The backend scopes keys to
+    their order, so an operation holds one refund per order; another operation can refund the same order and
+    amount again.
     """
 
-    def __init__(self, session_id: str) -> None:
-        self._session_id = session_id
+    def __init__(self, operation_id: str) -> None:
+        self._operation_id = operation_id
 
     def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
         registry.add_callback(BeforeToolCallEvent, self._bind_key)
 
     def _bind_key(self, event: BeforeToolCallEvent) -> None:
         tool_use = event.tool_use
-        arguments = tool_use["input"]
-        amount = arguments.get("amount") if isinstance(arguments, dict) else None
-        if not tool_use["name"].endswith(f"{TOOL_SEPARATOR}refund_customer") or not isinstance(amount, int | float):
-            return  # other tools have no key; an invalid amount is rejected by the backend
-        request = f"{self._session_id}|{arguments.get('order_id')}|{amount:.2f}"
-        key = f"refund-{hashlib.sha256(request.encode()).hexdigest()[:32]}"
-        event.tool_use = {**tool_use, "input": {**arguments, IDEMPOTENCY_FIELD: key}}
+        if not tool_use["name"].endswith(f"{TOOL_SEPARATOR}refund_customer"):
+            return  # other tools have no key
+        arguments = tool_use["input"] if isinstance(tool_use["input"], dict) else {}
+        event.tool_use = {**tool_use, "input": {**arguments, IDEMPOTENCY_FIELD: self._operation_id}}
 
 
 class ToolReliabilityHooks(HookProvider):

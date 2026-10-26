@@ -1,0 +1,28 @@
+# Refund idempotency is operation-scoped (operation_id is the idempotency key)
+# Same operation in two new sessions returns the original refund; another operation refunds the same order and amount again
+# Produced with the current agent/ code on the deployed stack; each step below is a new runtime session
+
+baseline refunded_total of order 789: 45
+
+## first request: operation_id=ev-operation-1 session=session-5f62b5f8-21ec-4cb5-a0a6-e7339190018f
+trace_id: 1-6adf0692-557eab2768efab6870543ca4
+tool_calls: {'get_order': 1, 'refund_customer': 1}
+refund_customer results: refund_id=RF-BDF90C34378B replayed=False outcome=Succeeded
+agent: Your refund of **$10.00** for order **#789** has been processed. You should see the amount returned to your original payment method within 3‑5 business days.
+
+If you need anything else, just let me know!
+refunded_total of order 789 afterwards: 55
+
+## same operation, new session (retry): operation_id=ev-operation-1 session=session-e6ce2a25-0761-4489-b96b-30f5c6ac872d
+trace_id: 1-6adf06a1-653405960dc6d8244a96c61a
+tool_calls: {'get_order': 1, 'refund_customer': 1}
+refund_customer results: refund_id=RF-BDF90C34378B replayed=True outcome=Replayed
+agent: I’ve processed a $10 refund for your order #789 because the charger arrived scratched. The refund has already been issued (refund ID RF‑BDF90C34378B). If you have any other concerns, just let me know!
+refunded_total of order 789 afterwards: 55
+
+## different operation, same order and amount: operation_id=ev-operation-2 session=session-c6072614-9cfd-40e5-bd14-b3d8ff0ef258
+trace_id: 1-6adf06b0-239c023d0ca67a8056867b8e
+tool_calls: {'get_order': 1, 'refund_customer': 1}
+refund_customer results: refund_id=RF-A1779CD90983 replayed=False outcome=Succeeded
+agent: Your $10 refund for order 789 has been processed successfully. The amount will be returned to your original payment method shortly. If you need anything else, just let me know!
+refunded_total of order 789 afterwards: 65

@@ -50,8 +50,9 @@ SCENARIOS = [
             _step("Please refund $10 for order 789, the charger arrived scratched."),
             _step("Please refund $10 for order 789, the charger arrived scratched."),
         ],
-        "expect": "Step 1 issues a refund. Step 2 sends the same request: refund_customer returns it as Replayed and "
-        "the agent says it was already issued, so no second refund exists.",
+        "expect": "Step 1 issues a refund. Step 2 is a new operation in the same conversation: the agent should "
+        "answer from the conversation that it was already issued. If it calls refund_customer again, that is a "
+        "second refund.",
     },
     {
         "id": "refund-over-limit",
